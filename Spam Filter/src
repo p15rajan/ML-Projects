@@ -1,0 +1,96 @@
+# spam Filter
+#!/usr/bin/env python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df=pd.read_csv("spam.csv",encoding="latin-1")
+df.head()
+
+df1=df[["v2","v1"]].rename(columns={"v2":"email","v1":"label"})
+
+df1.info()
+
+
+df1["label"].value_counts(normalize=True)
+
+# make some visualization
+
+plt.figure(figsize=(5,5))
+plt.pie(df1["label"].value_counts(),labels=["Ham","Spam"],autopct="%1.2f%%",explode=[0.0,0.2])
+plt.title("Ham vs spam")
+plt.show()
+
+plt.figure(figsize=(5,5))
+sns.countplot(x=df1["label"])
+plt.title("Ham vs spam")
+plt.show()
+
+# rename the target variable
+df1["label"]=df1["label"].map({"ham":0,"spam":1})
+df1["label"]
+
+# create dependent and independent variable
+X=df1["email"]
+Y=df1["label"]
+
+from sklearn.model_selection import train_test_split
+X_train,X_test,Y_train,Y_test=train_test_split(X,Y,test_size=0.20,random_state=10)
+
+X_train.tail()
+
+# converting the text message into the form of bag of words
+
+from sklearn.feature_extraction.text import CountVectorizer
+vectorizer=CountVectorizer()
+new_x=vectorizer.fit(X_train)
+
+
+X_train_vectorized=vectorizer.transform(X_train)
+
+X_train_vectorized.dtype
+
+X_train_vectorized.shape
+
+count_array = X_train_vectorized.toarray()
+df100 = pd.DataFrame(data = count_array,columns = vectorizer.get_feature_names_out())
+pd.set_option("display.max_columns",5000)
+df100.head(10)
+
+new=pd.DataFrame(X_train_vectorized)
+new.head()
+
+from sklearn.naive_bayes import MultinomialNB,BernoulliNB,GaussianNB
+
+model=MultinomialNB(alpha=0.01)
+model.fit(X_train_vectorized,Y_train)
+predictions=model.predict(vectorizer.transform(X_test))
+print("Accuracy",100*sum(predictions==Y_test)/len(predictions))
+from sklearn.metrics import accuracy_score,classification_report,confusion_matrix
+
+print("classification_report \n",classification_report(Y_test,predictions))
+print("confusion matrix \n",confusion_matrix(Y_test,predictions))
+
+# create a function to paas new text and check 
+
+def enter_text(message):
+    if model.predict(vectorizer.transform([message]))==1:
+        print("This is a spam")
+    else:
+        print("This is a not spam , please reconfim manually")
+# use the function
+enter_text("hello how are you friend")
+
+enter_text("WINNER  you secret code is M112")
+enter_text("job offer from usa, we will call u tomorrow ")
+
+from sklearn.ensemble import RandomForestClassifier
+Rf=RandomForestClassifier()
+
+rf=RandomForestClassifier()
+rf.fit(X_train_vectorized,Y_train)
+predictions_rf=rf.predict(vectorizer.transform(X_test))
+print("classification_report \n",classification_report(Y_test,predictions_rf))
+
+print("confusion matrix \n",confusion_matrix(Y_test,predictions_rf))
